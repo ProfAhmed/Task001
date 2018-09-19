@@ -1,6 +1,9 @@
 package com.pro.ahmed.hardtask001.fragments;
 
+import android.app.ProgressDialog;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
@@ -35,6 +38,8 @@ public class CategoriesFragment extends Fragment {
     @BindView(R.id.rvCategories)
     RecyclerView rvCategories;
     List<ModelCategory> categories;
+    private ProgressDialog progressDialog;
+    private SharedPreferences prefs;
 
     public CategoriesFragment() {
         // Required empty public constructor
@@ -62,6 +67,16 @@ public class CategoriesFragment extends Fragment {
     private void init() {
         categories = new ArrayList<>();
         GridLayoutManager llm = new GridLayoutManager(getActivity(), 2);
+        prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String checkLang = prefs.getString("lang", "en");
+        progressDialog = new ProgressDialog(getActivity(), ProgressDialog.THEME_HOLO_DARK);
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        if (checkLang.equals("ara")) {
+            progressDialog.setMessage("من فضلك انتظر,جارى التحميل...");
+        } else {
+            progressDialog.setMessage("Loading,Please Wait...");
+        }
+        progressDialog.show(); // start dialog
         rvCategories.setHasFixedSize(true);
         rvCategories.setLayoutManager(llm);
     }
@@ -79,6 +94,8 @@ public class CategoriesFragment extends Fragment {
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
+
+                        progressDialog.dismiss(); // cancel dialog
                         // Process the JSON
                         try {
                             // Loop through the array elements

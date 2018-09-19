@@ -1,5 +1,6 @@
 package com.pro.ahmed.hardtask001.fragments;
 
+import android.app.ProgressDialog;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -7,9 +8,11 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -24,6 +27,7 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
+import com.pro.ahmed.hardtask001.MainActivity;
 import com.pro.ahmed.hardtask001.R;
 import com.pro.ahmed.hardtask001.adapters.CategoryAdapter;
 import com.pro.ahmed.hardtask001.models.ModelCategory;
@@ -64,6 +68,8 @@ public class SubCategoriesFragment extends Fragment implements View.OnClickListe
 
     SharedPreferences prefs; // to get selected Lang
     SharedPreferences.Editor editor; // to set Lang in preference
+
+    ProgressDialog progressDialog;
 
     // declare variables to store arguments data
     private int mId;
@@ -114,15 +120,18 @@ public class SubCategoriesFragment extends Fragment implements View.OnClickListe
         categories = new ArrayList<>();
         prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
         editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
-        //  ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
-        //  ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayShowTitleEnabled(false); // hide App Title
+        progressDialog = new ProgressDialog(getActivity(), ProgressDialog.THEME_HOLO_DARK);
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        progressDialog.show(); // start dialog
 
-        // setHasOptionsMenu(true);
         checkLang = prefs.getString(LangKey, "en");
         if (checkLang.equals("ara")) {
             tvAppBarSubCategories.setText(titleAR);
+            progressDialog.setMessage("من فضلك انتظر,جارى التحميل...");
+
         } else {
             tvAppBarSubCategories.setText(titleEn);
+            progressDialog.setMessage("Loading,Please Wait...");
         }
         GridLayoutManager llm = new GridLayoutManager(getActivity(), 2);
         rvSubCategories.setHasFixedSize(true);
@@ -143,6 +152,9 @@ public class SubCategoriesFragment extends Fragment implements View.OnClickListe
                 new Response.Listener<JSONArray>() {
                     @Override
                     public void onResponse(JSONArray response) {
+
+                        progressDialog.dismiss(); // cancel dialog
+
                         // Process the JSON
                         try {
                             // Loop through the array elements
@@ -187,21 +199,6 @@ public class SubCategoriesFragment extends Fragment implements View.OnClickListe
         MySingleton.getInstance(getActivity().getApplicationContext()).addToRequestQueue(jsonArrayRequest);
     }
 
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_back:
-                // implement back button
-                FragmentManager fm = getFragmentManager();
-                if (fm.getBackStackEntryCount() > 0) {
-                    fm.popBackStack();
-                }
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
-
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
@@ -211,19 +208,52 @@ public class SubCategoriesFragment extends Fragment implements View.OnClickListe
                     fm.popBackStack();
                 }
                 break;
+
             case R.id.ivChangeLang:
-
-                checkLang = prefs.getString(LangKey, "en"); // get saved language in preference
-                if (checkLang.equals("ara")) { // set english if current language is arabic
-                    editor.putString(LangKey, "en");
-                    editor.commit();
-                    Toast.makeText(getActivity(), "Language is English ", Toast.LENGTH_SHORT).show();
-                } else {// set arabic if current language is english
-                    editor.putString(LangKey, "ara");
-                    editor.commit();
-                    Toast.makeText(getActivity(), "اللغة العربية ", Toast.LENGTH_SHORT).show();
-
-                }
+                //To register the button with context menu.
+                registerForContextMenu(ivChangeLang);
+                getActivity().openContextMenu(ivChangeLang);
         }
+
+    }
+
+
+    // constants for context menu
+    final int CONTEXT_MENU_Ar = 1;
+    final int CONTEXT_MENU_EN = 2;
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View
+            v, ContextMenu.ContextMenuInfo menuInfo) {
+        //Context menu title
+        if (checkLang.equals("ara")) {
+            menu.setHeaderTitle("اختيار اللغة");
+        } else {
+            menu.setHeaderTitle("Select Language");
+        }
+
+        menu.add(Menu.NONE, CONTEXT_MENU_Ar, Menu.NONE, "عــربـي");
+        menu.add(Menu.NONE, CONTEXT_MENU_EN, Menu.NONE, "English");
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        // TODO Auto-generated method stub
+        switch (item.getItemId()) {
+            case CONTEXT_MENU_EN: {
+                editor.putString(LangKey, "en");
+                editor.commit();
+                getActivity().recreate();
+            }
+            break;
+            case CONTEXT_MENU_Ar: {
+                editor.putString(LangKey, "ara");
+                editor.commit();
+                getActivity().recreate();
+            }
+            break;
+        }
+
+        return super.onContextItemSelected(item);
     }
 }
